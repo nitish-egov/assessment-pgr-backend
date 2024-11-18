@@ -1,0 +1,2 @@
+ALTER TABLE eg_pgr_service_v2 ADD COLUMN active BOOLEAN DEFAULT TRUE;
+ALTER TABLE eg_pgr_service_v2 ALTER COLUMN description DROP NOT NULL;
