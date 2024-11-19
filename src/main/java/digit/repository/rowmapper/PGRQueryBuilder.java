@@ -48,31 +48,30 @@ public class PGRQueryBuilder {
 
         StringBuilder builder = new StringBuilder(QUERY);
 
-        if(criteria.getIsPlainSearch() != null && criteria.getIsPlainSearch()){
-            Set<String> tenantIds = criteria.getTenantIds();
-            if(!CollectionUtils.isEmpty(tenantIds)){
-                addClauseIfRequired(preparedStmtList, builder);
-                builder.append(" ser.tenantId IN (").append(createQuery(tenantIds)).append(")");
-                addToPreparedStatement(preparedStmtList, tenantIds);
-            }
-        }
-        else {
+//        if(criteria.getIsPlainSearch() != null && criteria.getIsPlainSearch()){
+//            Set<String> tenantIds = criteria.getTenantIds();
+//            if(!CollectionUtils.isEmpty(tenantIds)){
+//                addClauseIfRequired(preparedStmtList, builder);
+//                builder.append(" ser.tenantId IN (").append(createQuery(tenantIds)).append(")");
+//                addToPreparedStatement(preparedStmtList, tenantIds);
+//            }
+//        }
+//        else {
             if (criteria.getTenantId() != null) {
                 String tenantId = criteria.getTenantId();
 
-                String[] tenantIdChunks = tenantId.split("\\.");
+//                String[] tenantIdChunks = tenantId.split("\\.");
 
-                if (tenantIdChunks.length == 1) {
-                    addClauseIfRequired(preparedStmtList, builder);
-                    builder.append(" ser.tenantid LIKE ? ");
-                    preparedStmtList.add(criteria.getTenantId() + '%');
-                } else {
-                    addClauseIfRequired(preparedStmtList, builder);
-                    builder.append(" ser.tenantid=? ");
-                    preparedStmtList.add(criteria.getTenantId());
-                }
+//                if (tenantIdChunks.length == 1) {
+//                    addClauseIfRequired(preparedStmtList, builder);
+//                    builder.append(" ser.tenantid LIKE ? ");
+//                    preparedStmtList.add(criteria.getTenantId() + '%');
+//                } else {
+                addClauseIfRequired(preparedStmtList, builder);
+                builder.append(" ser.tenantid=? ");
+                preparedStmtList.add(criteria.getTenantId());
+//                }
             }
-        }
         Set<String> serviceCodes = criteria.getServiceCode();
         if (!CollectionUtils.isEmpty(serviceCodes)) {
             addClauseIfRequired(preparedStmtList, builder);
@@ -89,7 +88,7 @@ public class PGRQueryBuilder {
 
         if (criteria.getServiceRequestId() != null) {
             addClauseIfRequired(preparedStmtList, builder);
-            builder.append(" ser.serviceRequestId=? ");
+            builder.append(" ser.servicerequestid=? ");
             preparedStmtList.add(criteria.getServiceRequestId());
         }
 
@@ -186,12 +185,13 @@ public class PGRQueryBuilder {
     }
 
     private void addLimitAndOffset(StringBuilder builder, RequestSearchCriteria criteria, List<Object> preparedStmtList){
-
+        Integer limit = criteria.getLimit() != null && criteria.getLimit() > 0 ? criteria.getLimit() : 10; // Default limit is 10
+        Integer offset = criteria.getOffset() != null && criteria.getOffset() >= 0 ? criteria.getOffset() : 0; // Default offset is 0
         builder.append(" OFFSET ? ");
-        preparedStmtList.add(criteria.getOffset());
+        preparedStmtList.add(offset);
 
         builder.append(" LIMIT ? ");
-        preparedStmtList.add(criteria.getLimit());
+        preparedStmtList.add(limit);
 
     }
 

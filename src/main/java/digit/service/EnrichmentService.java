@@ -64,7 +64,7 @@ public class EnrichmentService {
       serviceRequest.getService().setAccountId(requestInfo.getUserInfo().getUuid());
     }
 
-//    userService.callUserService(serviceRequest);
+    userService.callUserService(serviceRequest);
 
     AuditDetails auditDetails = utils.getAuditDetails(requestInfo.getUserInfo().getUuid(), service,
         true);
@@ -121,7 +121,7 @@ public class EnrichmentService {
 
     if (criteria.isEmpty() && requestInfo.getUserInfo().getType()
         .equalsIgnoreCase(USERTYPE_CITIZEN)) {
-      String citizenMobileNumber = requestInfo.getUserInfo().getUserName();
+        String citizenMobileNumber = requestInfo.getUserInfo().getUserName();
       criteria.setMobileNumber(citizenMobileNumber);
     }
 
@@ -130,21 +130,21 @@ public class EnrichmentService {
     String tenantId = (criteria.getTenantId() != null) ? criteria.getTenantId()
         : requestInfo.getUserInfo().getTenantId();
 
-    if (criteria.getMobileNumber() != null) {
-      userService.enrichUserIds(tenantId, criteria);
-    }
+//    if (criteria.getMobileNumber() != null) {
+//      userService.enrichUserIds(tenantId, criteria);
+//    }
 
-    if (criteria.getLimit() == null) {
-      criteria.setLimit(config.getDefaultLimit());
-    }
-
-    if (criteria.getOffset() == null) {
-      criteria.setOffset(config.getDefaultOffset());
-    }
-
-    if (criteria.getLimit() != null && criteria.getLimit() > config.getMaxLimit()) {
-      criteria.setLimit(config.getMaxLimit());
-    }
+//    if (criteria.getLimit() == null) {
+//      criteria.setLimit(config.getDefaultLimit());
+//    }
+//
+//    if (criteria.getOffset() == null) {
+//      criteria.setOffset(config.getDefaultOffset());
+//    }
+//
+//    if (criteria.getLimit() != null && criteria.getLimit() > config.getMaxLimit()) {
+//      criteria.setLimit(config.getMaxLimit());
+//    }
 
   }
 

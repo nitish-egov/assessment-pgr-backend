@@ -76,32 +76,49 @@ public class RequestApiController {
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
-//  @RequestMapping(value = "/request/_search", method = RequestMethod.POST)
-//  public ResponseEntity<ServiceResponse> requestsSearchPost(
-//      @javax.validation.Valid @RequestBody RequestInfoWrapper requestInfoWrapper,
-//      @javax.validation.Valid @ModelAttribute RequestSearchCriteria criteria) {
-//
-//    String tenantId = criteria.getTenantId();
-//    List<ServiceWrapper> serviceWrappers = pgrService.search(requestInfoWrapper.getRequestInfo(),
-//        criteria);
+  @RequestMapping(value = "/request1/_search", method = RequestMethod.POST)
+  public ResponseEntity<ServiceResponse> requestsSearchPost(
+      @javax.validation.Valid @RequestBody RequestInfoWrapper requestInfoWrapper,
+      @javax.validation.Valid @ModelAttribute RequestSearchCriteria criteria) {
+
+    String tenantId = criteria.getTenantId();
+    List<ServiceWrapper> serviceWrappers = pgrService.search(requestInfoWrapper.getRequestInfo(),
+        criteria);
 //    Map<String, Integer> dynamicData = pgrService.getDynamicData(tenantId);
 //
 //    int complaintsResolved = dynamicData.get(PGRConstants.COMPLAINTS_RESOLVED);
 //    int averageResolutionTime = dynamicData.get(PGRConstants.AVERAGE_RESOLUTION_TIME);
 //    int complaintTypes = pgrService.getComplaintTypes();
-//
-//    ResponseInfo responseInfo = responseInfoFactory.createResponseInfoFromRequestInfo(
-//        requestInfoWrapper.getRequestInfo(), true);
+
+    ResponseInfo responseInfo = responseInfoFactory.createResponseInfoFromRequestInfo(
+        requestInfoWrapper.getRequestInfo(), true);
 //    ServiceResponse response = ServiceResponse.builder().responseInfo(responseInfo)
 //        .serviceWrappers(serviceWrappers).complaintsResolved(complaintsResolved)
 //        .averageResolutionTime(averageResolutionTime).complaintTypes(complaintTypes).build();
-//    return new ResponseEntity<>(response, HttpStatus.OK);
-//
-////  }
-//
-//
-//
-//
-//
-//
+    ServiceResponse response = ServiceResponse.builder().responseInfo(responseInfo).serviceWrappers(serviceWrappers).build();
+    return new ResponseEntity<>(response, HttpStatus.OK);
+
+  }
+
+
+  // update
+  @RequestMapping(value="/request1/_update", method = RequestMethod.POST)
+  public ResponseEntity<ServiceResponse> requestsUpdatePost(@Valid @RequestBody ServiceRequest request) throws IOException {
+    ServiceRequest enrichedReq = pgrService.update(request);
+    ServiceWrapper serviceWrapper = ServiceWrapper.builder().service(enrichedReq.getService()).workflow(enrichedReq.getWorkflow()).build();
+    ResponseInfo responseInfo = responseInfoFactory.createResponseInfoFromRequestInfo(request.getRequestInfo(), true);
+    ServiceResponse response = ServiceResponse.builder().responseInfo(responseInfo).serviceWrappers(Collections.singletonList(serviceWrapper)).build();
+    return new ResponseEntity<>(response, HttpStatus.OK);
+  }
+
+
+  @RequestMapping(value="/request1/_count", method = RequestMethod.POST)
+  public ResponseEntity<CountResponse> requestsCountPost(@Valid @RequestBody RequestInfoWrapper requestInfoWrapper,
+      @Valid @ModelAttribute RequestSearchCriteria criteria) {
+    Integer count = pgrService.count(requestInfoWrapper.getRequestInfo(), criteria);
+    ResponseInfo responseInfo = responseInfoFactory.createResponseInfoFromRequestInfo(requestInfoWrapper.getRequestInfo(), true);
+    CountResponse response = CountResponse.builder().responseInfo(responseInfo).count(count).build();
+    return new ResponseEntity<>(response, HttpStatus.OK);
+  }
+
 }

@@ -8,10 +8,15 @@ import digit.validator.ServiceRequestValidator;
 import digit.web.models.RequestSearchCriteria;
 import digit.web.models.ServiceRequest;
 import digit.web.models.ServiceWrapper;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import org.egov.common.contract.request.RequestInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 @Component
 public class PGRService {
@@ -64,7 +69,7 @@ public class PGRService {
     Object mdmsData = mdmsUtils.mDMSCall(request);
     validator.validateCreate(request, mdmsData);
     enrichmentService.enrichCreateRequest(request);
-//    workflowService.updateWorkflowStatus(request);
+    workflowService.updateWorkflowStatus(request);
     producer.push(config.getCreateTopic(), request);
     return request;
   }
@@ -72,6 +77,55 @@ public class PGRService {
   public List<ServiceWrapper> search(RequestInfo requestInfo, RequestSearchCriteria criteria) {
     validator.validateSearch(requestInfo, criteria);
     enrichmentService.enrichSearchRequest(requestInfo, criteria);
-    return null;
+
+    if(criteria.getMobileNumber()!=null && CollectionUtils.isEmpty(criteria.getUserIds()))
+      return new ArrayList<>();
+
+    criteria.setIsPlainSearch(false);
+
+    List<ServiceWrapper> serviceWrappers = repository.getServiceWrappers(criteria);
+
+    if(CollectionUtils.isEmpty(serviceWrappers))
+      return new ArrayList<>();;
+
+    userService.enrichUsers(serviceWrappers);
+    List<ServiceWrapper> enrichedServiceWrappers = workflowService.enrichWorkflow(requestInfo,serviceWrappers);
+    Map<Long, List<ServiceWrapper>> sortedWrappers = new TreeMap<>(Collections.reverseOrder());
+    for(ServiceWrapper svc : enrichedServiceWrappers){
+      if(sortedWrappers.containsKey(svc.getService().getAuditDetails().getCreatedTime())){
+        sortedWrappers.get(svc.getService().getAuditDetails().getCreatedTime()).add(svc);
+      }else{
+        List<ServiceWrapper> serviceWrapperList = new ArrayList<>();
+        serviceWrapperList.add(svc);
+        sortedWrappers.put(svc.getService().getAuditDetails().getCreatedTime(), serviceWrapperList);
+      }
+    }
+    List<ServiceWrapper> sortedServiceWrappers = new ArrayList<>();
+    for(Long createdTimeDesc : sortedWrappers.keySet()){
+      sortedServiceWrappers.addAll(sortedWrappers.get(createdTimeDesc));
+    }
+    return sortedServiceWrappers;
   }
+
+
+  public ServiceRequest update(ServiceRequest request){
+    Object mdmsData = mdmsUtils.mDMSCall(request);
+    validator.validateUpdate(request, mdmsData);
+    enrichmentService.enrichUpdateRequest(request);
+    workflowService.updateWorkflowStatus(request);
+    producer.push(config.getUpdateTopic(),request);
+    return request;
+  }
+
+
+  public Integer count(RequestInfo requestInfo, RequestSearchCriteria criteria){
+    criteria.setIsPlainSearch(false);
+    Integer count = repository.getCount(criteria);
+    return count;
+  }
+
 }
+
+
+
+

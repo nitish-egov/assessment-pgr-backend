@@ -34,7 +34,8 @@ public class WorkflowService {
 
 
   @Autowired
-  public WorkflowService(PGRConfiguration pgrConfiguration, ServiceRequestRepository repository, ObjectMapper mapper) {
+  public WorkflowService(PGRConfiguration pgrConfiguration, ServiceRequestRepository repository,
+      ObjectMapper mapper) {
     this.pgrConfiguration = pgrConfiguration;
     this.repository = repository;
     this.mapper = mapper;
@@ -48,17 +49,21 @@ public class WorkflowService {
   public BusinessService getBusinessService(ServiceRequest serviceRequest) {
     String tenantId = serviceRequest.getService().getTenantId();
     StringBuilder url = getSearchURLWithParams(tenantId, PGR_BUSINESSSERVICE);
-    RequestInfoWrapper requestInfoWrapper = RequestInfoWrapper.builder().requestInfo(serviceRequest.getRequestInfo()).build();
+    RequestInfoWrapper requestInfoWrapper = RequestInfoWrapper.builder()
+        .requestInfo(serviceRequest.getRequestInfo()).build();
     Object result = repository.fetchResult(url, requestInfoWrapper);
     BusinessServiceResponse response = null;
     try {
       response = mapper.convertValue(result, BusinessServiceResponse.class);
     } catch (IllegalArgumentException e) {
-      throw new CustomException("PARSING ERROR", "Failed to parse response of workflow business service search");
+      throw new CustomException("PARSING ERROR",
+          "Failed to parse response of workflow business service search");
     }
 
-    if (CollectionUtils.isEmpty(response.getBusinessServices()))
-      throw new CustomException("BUSINESSSERVICE_NOT_FOUND", "The businessService " + PGR_BUSINESSSERVICE + " is not found");
+    if (CollectionUtils.isEmpty(response.getBusinessServices())) {
+      throw new CustomException("BUSINESSSERVICE_NOT_FOUND",
+          "The businessService " + PGR_BUSINESSSERVICE + " is not found");
+    }
 
     return response.getBusinessServices().get(0);
   }
@@ -71,29 +76,17 @@ public class WorkflowService {
    * */
   public String updateWorkflowStatus(ServiceRequest serviceRequest) {
     ProcessInstance processInstance = getProcessInstanceForPGR(serviceRequest);
-    ProcessInstanceRequest workflowRequest = new ProcessInstanceRequest(serviceRequest.getRequestInfo(), Collections.singletonList(processInstance));
+    ProcessInstanceRequest workflowRequest = new ProcessInstanceRequest(
+        serviceRequest.getRequestInfo(), Collections.singletonList(processInstance));
     State state = callWorkFlow(workflowRequest);
     serviceRequest.getService().setApplicationStatus(state.getApplicationStatus());
     return state.getApplicationStatus();
   }
 
 
-  public void validateAssignee(ServiceRequest serviceRequest) {
-    /*
-     * Call HRMS service and validate of the assignee belongs to same department
-     * as the employee assigning it
-     *
-     * */
 
-  }
 
-  /**
-   * Creates url for search based on given tenantId and businessservices
-   *
-   * @param tenantId        The tenantId for which url is generated
-   * @param businessService The businessService for which url is generated
-   * @return The search url
-   */
+
   private StringBuilder getSearchURLWithParams(String tenantId, String businessService) {
 
     StringBuilder url = new StringBuilder(pgrConfiguration.getWfHost());
@@ -106,22 +99,19 @@ public class WorkflowService {
   }
 
 
-  public void enrichmentForSendBackToCititzen() {
-    /*
-     * If send bac to citizen action is taken assignes should be set to accountId
-     *
-     * */
-  }
 
 
-  public List<ServiceWrapper> enrichWorkflow(RequestInfo requestInfo, List<ServiceWrapper> serviceWrappers) {
+
+  public List<ServiceWrapper> enrichWorkflow(RequestInfo requestInfo,
+      List<ServiceWrapper> serviceWrappers) {
 
     // FIX ME FOR BULK SEARCH
-    Map<String, List<ServiceWrapper>> tenantIdToServiceWrapperMap = getTenantIdToServiceWrapperMap(serviceWrappers);
+    Map<String, List<ServiceWrapper>> tenantIdToServiceWrapperMap = getTenantIdToServiceWrapperMap(
+        serviceWrappers);
 
     List<ServiceWrapper> enrichedServiceWrappers = new ArrayList<>();
 
-    for(String tenantId : tenantIdToServiceWrapperMap.keySet()) {
+    for (String tenantId : tenantIdToServiceWrapperMap.keySet()) {
 
       List<String> serviceRequestIds = new ArrayList<>();
 
@@ -131,26 +121,32 @@ public class WorkflowService {
         serviceRequestIds.add(pgrEntity.getService().getServiceRequestId());
       });
 
-      RequestInfoWrapper requestInfoWrapper = RequestInfoWrapper.builder().requestInfo(requestInfo).build();
+      RequestInfoWrapper requestInfoWrapper = RequestInfoWrapper.builder().requestInfo(requestInfo)
+          .build();
 
-      StringBuilder searchUrl = getprocessInstanceSearchURL(tenantId, StringUtils.join(serviceRequestIds, ','));
+      StringBuilder searchUrl = getprocessInstanceSearchURL(tenantId,
+          StringUtils.join(serviceRequestIds, ','));
       Object result = repository.fetchResult(searchUrl, requestInfoWrapper);
-
 
       ProcessInstanceResponse processInstanceResponse = null;
       try {
         processInstanceResponse = mapper.convertValue(result, ProcessInstanceResponse.class);
       } catch (IllegalArgumentException e) {
-        throw new CustomException("PARSING ERROR", "Failed to parse response of workflow processInstance search");
+        throw new CustomException("PARSING ERROR",
+            "Failed to parse response of workflow processInstance search");
       }
 
-      if (CollectionUtils.isEmpty(processInstanceResponse.getProcessInstances()) || processInstanceResponse.getProcessInstances().size() != serviceRequestIds.size())
+      if (CollectionUtils.isEmpty(processInstanceResponse.getProcessInstances())
+          || processInstanceResponse.getProcessInstances().size() != serviceRequestIds.size()) {
         throw new CustomException("WORKFLOW_NOT_FOUND", "The workflow object is not found");
+      }
 
-      Map<String, Workflow> businessIdToWorkflow = getWorkflow(processInstanceResponse.getProcessInstances());
+      Map<String, Workflow> businessIdToWorkflow = getWorkflow(
+          processInstanceResponse.getProcessInstances());
 
       tenantSpecificWrappers.forEach(pgrEntity -> {
-        pgrEntity.setWorkflow(businessIdToWorkflow.get(pgrEntity.getService().getServiceRequestId()));
+        pgrEntity.setWorkflow(
+            businessIdToWorkflow.get(pgrEntity.getService().getServiceRequestId()));
       });
 
       enrichedServiceWrappers.addAll(tenantSpecificWrappers);
@@ -160,12 +156,13 @@ public class WorkflowService {
 
   }
 
-  private Map<String, List<ServiceWrapper>> getTenantIdToServiceWrapperMap(List<ServiceWrapper> serviceWrappers) {
+  private Map<String, List<ServiceWrapper>> getTenantIdToServiceWrapperMap(
+      List<ServiceWrapper> serviceWrappers) {
     Map<String, List<ServiceWrapper>> resultMap = new HashMap<>();
-    for(ServiceWrapper serviceWrapper : serviceWrappers){
-      if(resultMap.containsKey(serviceWrapper.getService().getTenantId())){
+    for (ServiceWrapper serviceWrapper : serviceWrappers) {
+      if (resultMap.containsKey(serviceWrapper.getService().getTenantId())) {
         resultMap.get(serviceWrapper.getService().getTenantId()).add(serviceWrapper);
-      }else{
+      } else {
         List<ServiceWrapper> serviceWrapperList = new ArrayList<>();
         serviceWrapperList.add(serviceWrapper);
         resultMap.put(serviceWrapper.getService().getTenantId(), serviceWrapperList);
@@ -193,7 +190,7 @@ public class WorkflowService {
 //    processInstance.setDocuments(workflow.getVerificationDocuments());
     processInstance.setComment(workflow.getComments());
 
-    if(!CollectionUtils.isEmpty(workflow.getAssignes())){
+    if (!CollectionUtils.isEmpty(workflow.getAssignes())) {
       List<User> users = new ArrayList<>();
 
       workflow.getAssignes().forEach(uuid -> {
@@ -209,7 +206,6 @@ public class WorkflowService {
   }
 
   /**
-   *
    * @param processInstances
    */
   public Map<String, Workflow> getWorkflow(List<ProcessInstance> processInstances) {
@@ -219,8 +215,9 @@ public class WorkflowService {
     processInstances.forEach(processInstance -> {
       List<String> userIds = null;
 
-      if(!CollectionUtils.isEmpty(processInstance.getAssignes())){
-        userIds = processInstance.getAssignes().stream().map(User::getUuid).collect(Collectors.toList());
+      if (!CollectionUtils.isEmpty(processInstance.getAssignes())) {
+        userIds = processInstance.getAssignes().stream().map(User::getUuid)
+            .collect(Collectors.toList());
       }
 
       Workflow workflow = Workflow.builder()
@@ -246,7 +243,8 @@ public class WorkflowService {
   private State callWorkFlow(ProcessInstanceRequest workflowReq) {
 
     ProcessInstanceResponse response = null;
-    StringBuilder url = new StringBuilder(pgrConfiguration.getWfHost().concat(pgrConfiguration.getWfTransitionPath()));
+    StringBuilder url = new StringBuilder(
+        pgrConfiguration.getWfHost().concat(pgrConfiguration.getWfTransitionPath()));
     Object optional = repository.fetchResult(url, workflowReq);
     response = mapper.convertValue(optional, ProcessInstanceResponse.class);
     return response.getProcessInstances().get(0).getState();
